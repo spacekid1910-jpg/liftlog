@@ -30,8 +30,9 @@ jobs:
       SCHEDULE_MODE: ${{ github.event_name == 'schedule' || inputs.mode == 'schedule' }}
       # Training days as ISO weekday number = name (1 = Monday ... 7 = Sunday). Edit to add or move days.
       # Use an underscore instead of a space in a name (Abs_A shows as "Abs A").
-      TRAIN_PLAN: '1=Abs_A 2=Pull 3=Abs_B 5=Push 6=Abs_A'
-      # UK time the reminder arrives.
+      # Add @HH:MM to set a different time for that day (Abs days are in the evening).
+      TRAIN_PLAN: '1=Abs_A@19:00 2=Pull 3=Abs_B@19:00 5=Push 6=Abs_A@19:00'
+      # UK time the reminder arrives when a day has no @time.
       SEND_TIME: '15:30'
     steps:
       - name: Find the next training-day reminder slot (UK time)
@@ -42,12 +43,16 @@ jobs:
           TOMORROW=$(TZ=Europe/London date -d tomorrow +%F)
           FOUND=false
           for DATE in "$TODAY" "$TOMORROW"; do
-            TS=$(TZ=Europe/London date -d "${DATE} ${SEND_TIME}" +%s)
             DOW=$(TZ=Europe/London date -d "${DATE}" +%u)
             DAYNAME=""
+            AT="$SEND_TIME"
             for ITEM in $TRAIN_PLAN; do
-              if [ "${ITEM%%=*}" = "$DOW" ]; then DAYNAME="${ITEM#*=}"; fi
+              if [ "${ITEM%%=*}" = "$DOW" ]; then
+                DAYNAME="${ITEM#*=}"
+                case "$DAYNAME" in *@*) AT="${DAYNAME#*@}"; DAYNAME="${DAYNAME%@*}";; esac
+              fi
             done
+            TS=$(TZ=Europe/London date -d "${DATE} ${AT}" +%s)
             if [ -n "$DAYNAME" ] && [ "$TS" -gt $((NOW + 120)) ]; then
               FOUND=true
               break
@@ -59,6 +64,7 @@ jobs:
               echo "unix=${TS}"
               echo "date=${DATE}"
               echo "dayname=${DAYNAME//_/ }"
+              echo "at=${AT}"
             } >> "$GITHUB_OUTPUT"
             echo "Next slot: ${DAYNAME} day on ${DATE} (unix ${TS})"
           else
@@ -82,6 +88,7 @@ jobs:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           SEND_UNIX: ${{ steps.next.outputs.unix }}
           DAYNAME: ${{ steps.next.outputs.dayname }}
+          AT: ${{ steps.next.outputs.at }}
         run: |
           if [ -z "$NTFY_TOPIC" ]; then
             echo "::error::The NTFY_TOPIC secret is not set (Settings > Secrets and variables > Actions)."
@@ -105,7 +112,7 @@ jobs:
             DELAY=(-H "Delay: ${SEND_UNIX}")
             TITLE="${DAYNAME} day today"
             BODY="Time to train. Tap to open Lift Log and see today's targets."
-            echo "Queuing the ${DAYNAME} reminder - ntfy will deliver it at ${SEND_TIME} UK time."
+            echo "Queuing the ${DAYNAME} reminder - ntfy will deliver it at ${AT} UK time."
           else
             echo "Test run: sending immediately."
           fi
