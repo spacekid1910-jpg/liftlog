@@ -1,0 +1,126 @@
+name: Gym day reminder
+
+# How this works (same idea as the daily quiz):
+#   GitHub's scheduler is "best effort" and can run late, so it is NOT trusted with the exact time.
+#   Each evening this workflow looks for the next training day in the coming day or so and asks ntfy to deliver
+#   the reminder at exactly SEND_TIME (UK time). ntfy then delivers it on the dot, even if GitHub is late.
+
+on:
+  schedule:
+    # Two evening runs on off-peak minutes. The second is a backup; a cache marker stops it queuing a duplicate.
+    - cron: '41 19 * * *'
+    - cron: '17 22 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'now = buzz my phone immediately (test).  schedule = queue the next reminder.'
+        type: choice
+        options:
+          - now
+          - schedule
+        default: now
+
+permissions:
+  contents: read
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    env:
+      SCHEDULE_MODE: ${{ github.event_name == 'schedule' || inputs.mode == 'schedule' }}
+      # Training days as ISO weekday number = name (1 = Monday ... 7 = Sunday). Edit to add or move days.
+      TRAIN_PLAN: '2=Pull 5=Push'
+      # UK time the reminder arrives.
+      SEND_TIME: '15:30'
+    steps:
+      - name: Find the next training-day reminder slot (UK time)
+        id: next
+        run: |
+          NOW=$(date +%s)
+          TODAY=$(TZ=Europe/London date +%F)
+          TOMORROW=$(TZ=Europe/London date -d tomorrow +%F)
+          FOUND=false
+          for DATE in "$TODAY" "$TOMORROW"; do
+            TS=$(TZ=Europe/London date -d "${DATE} ${SEND_TIME}" +%s)
+            DOW=$(TZ=Europe/London date -d "${DATE}" +%u)
+            DAYNAME=""
+            for ITEM in $TRAIN_PLAN; do
+              if [ "${ITEM%%=*}" = "$DOW" ]; then DAYNAME="${ITEM#*=}"; fi
+            done
+            if [ -n "$DAYNAME" ] && [ "$TS" -gt $((NOW + 120)) ]; then
+              FOUND=true
+              break
+            fi
+          done
+          if [ "$FOUND" = "true" ]; then
+            {
+              echo "found=true"
+              echo "unix=${TS}"
+              echo "date=${DATE}"
+              echo "dayname=${DAYNAME}"
+            } >> "$GITHUB_OUTPUT"
+            echo "Next slot: ${DAYNAME} day on ${DATE} (unix ${TS})"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "No training day coming up in the next day or so."
+          fi
+
+      - name: Already queued for that day?
+        id: seen
+        if: env.SCHEDULE_MODE == 'true' && steps.next.outputs.found == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: .queued-marker
+          key: liftlog-queued-${{ steps.next.outputs.date }}
+          lookup-only: true
+
+      - name: Send push notification
+        id: send
+        if: env.SCHEDULE_MODE != 'true' || (steps.next.outputs.found == 'true' && steps.seen.outputs.cache-hit != 'true')
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          SEND_UNIX: ${{ steps.next.outputs.unix }}
+          DAYNAME: ${{ steps.next.outputs.dayname }}
+        run: |
+          if [ -z "$NTFY_TOPIC" ]; then
+            echo "::error::The NTFY_TOPIC secret is not set (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+          OWNER=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          REPO="${GITHUB_REPOSITORY#*/}"
+          APP_URL="https://${OWNER}.github.io/${REPO}/"
+          DELAY=()
+          TITLE="Gym reminder (test)"
+          BODY="Test notification from Lift Log. Tap to open the app."
+          if [ "$SCHEDULE_MODE" = "true" ]; then
+            DELAY=(-H "Delay: ${SEND_UNIX}")
+            TITLE="${DAYNAME} day today"
+            BODY="Time to train. Tap to open Lift Log and see today's targets."
+            echo "Queuing the ${DAYNAME} reminder - ntfy will deliver it at ${SEND_TIME} UK time."
+          else
+            echo "Test run: sending immediately."
+          fi
+          curl -fsS "${DELAY[@]}" \
+            -H "Title: ${TITLE}" \
+            -H "Tags: muscle" \
+            -H "Click: ${APP_URL}" \
+            -H "Actions: view, Open Lift Log, ${APP_URL}" \
+            -d "${BODY}" \
+            "https://ntfy.sh/${NTFY_TOPIC}"
+          echo
+          echo "Done. App link: ${APP_URL}"
+
+      - name: Remember that this day is queued
+        if: steps.send.outcome == 'success' && env.SCHEDULE_MODE == 'true'
+        run: echo queued > .queued-marker
+
+      - name: Save the marker
+        if: steps.send.outcome == 'success' && env.SCHEDULE_MODE == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .queued-marker
+          key: liftlog-queued-${{ steps.next.outputs.date }}
+
+      - name: Skipped (already queued)
+        if: steps.seen.outputs.cache-hit == 'true'
+        run: echo "That day's reminder is already queued, so nothing was sent."
