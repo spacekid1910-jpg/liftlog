@@ -29,7 +29,8 @@ jobs:
     env:
       SCHEDULE_MODE: ${{ github.event_name == 'schedule' || inputs.mode == 'schedule' }}
       # Training days as ISO weekday number = name (1 = Monday ... 7 = Sunday). Edit to add or move days.
-      TRAIN_PLAN: '2=Pull 5=Push'
+      # Use an underscore instead of a space in a name (Abs_A shows as "Abs A").
+      TRAIN_PLAN: '1=Abs_A 2=Pull 3=Abs_B 5=Push 6=Abs_A'
       # UK time the reminder arrives.
       SEND_TIME: '15:30'
     steps:
@@ -57,7 +58,7 @@ jobs:
               echo "found=true"
               echo "unix=${TS}"
               echo "date=${DATE}"
-              echo "dayname=${DAYNAME}"
+              echo "dayname=${DAYNAME//_/ }"
             } >> "$GITHUB_OUTPUT"
             echo "Next slot: ${DAYNAME} day on ${DATE} (unix ${TS})"
           else

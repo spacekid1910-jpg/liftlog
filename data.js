@@ -27,6 +27,16 @@ window.FIT = {
     { id: 'calf-raise', name: 'Calf Raise', m: 'Calves', sets: 3, lo: 10, hi: 15, step: 5 },
     { id: 'squat', name: 'Squat', m: 'Quads', sets: 3, lo: 6, hi: 10, step: 2.5 },
     { id: 'leg-extension', name: 'Leg Extension', m: 'Quads', sets: 3, lo: 10, hi: 15, step: 2.5 },
+    // Abs
+    { id: 'cable-crunch', name: 'Cable Crunch (kneeling)', m: 'Abs', sets: 3, lo: 10, hi: 15, step: 2.5 },
+    { id: 'hanging-leg-raise', name: 'Hanging Leg Raise', m: 'Abs', sets: 3, lo: 8, hi: 15, step: 2.5, bw: true },
+    { id: 'pallof-press', name: 'Pallof Press (per side)', m: 'Abs', sets: 2, lo: 10, hi: 15, step: 2.5 },
+    { id: 'ab-wheel', name: 'Ab Wheel Rollout', m: 'Abs', sets: 3, lo: 6, hi: 12, step: 2.5, bw: true },
+    { id: 'decline-sit-up', name: 'Weighted Decline Sit-up', m: 'Abs', sets: 3, lo: 10, hi: 15, step: 2.5 },
+    { id: 'cable-woodchop', name: 'Cable Woodchop (per side)', m: 'Abs', sets: 2, lo: 10, hi: 15, step: 2.5 },
+    { id: 'reverse-crunch', name: 'Reverse Crunch', m: 'Abs', sets: 3, lo: 12, hi: 20, step: 2.5, bw: true },
+    { id: 'machine-crunch', name: 'Ab Machine Crunch', m: 'Abs', sets: 3, lo: 10, hi: 15, step: 2.5 },
+    { id: 'dead-bug', name: 'Dead Bug', m: 'Abs', sets: 2, lo: 10, hi: 20, step: 2.5, bw: true },
   ],
   TEMPLATES: {
     pull: {
@@ -44,9 +54,20 @@ window.FIT = {
       core: ['leg-press', 'rdl', 'leg-curl', 'calf-raise'],
       extra: ['squat', 'leg-extension'],
     },
+    // Two short ab sessions that alternate: A = loaded crunching + leg raises, B = anti-extension + obliques.
+    absa: {
+      label: 'Abs A',
+      core: ['cable-crunch', 'hanging-leg-raise', 'pallof-press'],
+      extra: ['machine-crunch', 'reverse-crunch', 'dead-bug'],
+    },
+    absb: {
+      label: 'Abs B',
+      core: ['ab-wheel', 'decline-sit-up', 'cable-woodchop'],
+      extra: ['reverse-crunch', 'dead-bug', 'hanging-leg-raise'],
+    },
   },
   // Minimum sets per week per muscle before the balance check flags it (about 10 is a common target).
-  MIN_SETS: { Chest: 6, Back: 6, Shoulders: 6, 'Rear delts': 3, Biceps: 5, Triceps: 5, Quads: 6, Hamstrings: 4, Calves: 3 },
+  MIN_SETS: { Chest: 6, Back: 6, Shoulders: 6, 'Rear delts': 3, Biceps: 5, Triceps: 5, Quads: 6, Hamstrings: 4, Calves: 3, Abs: 6 },
   // getDay(): 0 = Sunday ... 6 = Saturday
-  SCHEDULE: { 2: 'pull', 5: 'push' },
+  SCHEDULE: { 1: 'absa', 2: 'pull', 3: 'absb', 5: 'push', 6: 'absa' },
 };

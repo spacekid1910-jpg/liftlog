@@ -3,7 +3,7 @@
 
   const { CATALOG, TEMPLATES, SCHEDULE, MIN_SETS } = window.FIT;
   const KEY = 'liftlog.v1';
-  const TYPE_LABEL = { pull: 'Pull', push: 'Push', legs: 'Legs' };
+  const TYPE_LABEL = { pull: 'Pull', push: 'Push', legs: 'Legs', absa: 'Abs A', absb: 'Abs B' };
 
   // ---------- helpers ----------
   const $ = (sel, el = document) => el.querySelector(sel);
@@ -317,7 +317,7 @@
 
     wrap.append(h('h2', { text: 'Start a session' }));
     wrap.append(h('div', { class: 'start-grid' },
-      ['pull', 'push', 'legs'].map((t) =>
+      ['pull', 'push', 'legs', 'absa', 'absb'].map((t) =>
         h('button', { type: 'button', onclick: () => startSession(t) },
           TYPE_LABEL[t], h('small', { text: t === 'legs' ? 'optional' : (todayType === t ? 'today' : '') })))));
 
@@ -942,6 +942,47 @@
         h('button', { type: 'button', class: 'primary', onclick: submit }, 'Save')));
   }
 
+  // Waist-to-height is a simple, rough guide to how close abs are to showing.
+  function waistInfo(p) {
+    const list = state.measures.filter((m) => m.type === 'waist').sort(byDate);
+    if (!list.length) return null;
+    const last = list[list.length - 1];
+    const ratio = last.cm / p.heightCm;
+    let verdict;
+    if (ratio < 0.43) verdict = 'Lean enough that abs usually show with decent light and a flexed core. From here it is mostly about making the muscles thicker.';
+    else if (ratio < 0.46) verdict = 'Close. Many people start to see the top abs around here.';
+    else if (ratio < 0.5) verdict = 'A healthy range, but abs are usually still hidden. Keep your waist steady while your weight rises.';
+    else verdict = 'Above 0.5 is worth keeping an eye on. Keep the gain slow and your waist from growing.';
+    let trend = '';
+    const older = list.filter((m) => dayMs(m.date) <= dayMs(last.date) - 14 * DAY);
+    if (older.length) {
+      const ref = older.reduce((best, m) => (Math.abs(dayMs(m.date) - (dayMs(last.date) - 28 * DAY)) < Math.abs(dayMs(best.date) - (dayMs(last.date) - 28 * DAY)) ? m : best));
+      const weeks = (dayMs(last.date) - dayMs(ref.date)) / (7 * DAY);
+      const perMonth = ((last.cm - ref.cm) / weeks) * 4;
+      if (perMonth >= 2) trend = `Your waist is growing about ${round1(perMonth)} cm a month - faster than ideal. Drop your gain rate to 0.25 kg a week in Edit profile so more of it is muscle.`;
+      else if (perMonth > 0.75) trend = `Waist is up about ${round1(perMonth)} cm a month. That's fine while you gain weight - just don't let it speed up.`;
+      else trend = 'Your waist is steady while you gain weight - that is the pattern you want.';
+    }
+    return { cm: last.cm, ratio, verdict, trend };
+  }
+
+  function absCard(p) {
+    const info = waistInfo(p);
+    const card = h('div', { class: 'card' }, h('b', { text: 'Visible abs' }),
+      h('p', { class: 'small', text: 'Abs show when two things line up: low enough body fat, and abs big enough to see. Ab exercises build the second one. They cannot burn fat off your stomach, so the plan has three parts:' }),
+      h('p', { class: 'small', text: '1. Train abs on Monday (Abs A), Wednesday (Abs B) and Saturday (Abs A). About 15 minutes, and the app gives you a weight or rep target each time. Add weight when you hit the top of the range, like any other lift.' }),
+      h('p', { class: 'small', text: '2. Keep gaining slowly (0.25 to 0.35 kg a week). A bigger, thicker ab wall shows more at the same body fat, and a slow gain keeps fat from piling up on top of it.' }),
+      h('p', { class: 'small', text: '3. Watch your waist. Log it every week or two on Progress > Measures.' }));
+    if (info) {
+      card.append(h('p', { class: 'small', text: `Waist ${fmtKg(info.cm)} cm, height ${p.heightCm} cm: waist-to-height ${info.ratio.toFixed(2)}. ${info.verdict}` }));
+      if (info.trend) card.append(h('p', { class: 'trend', text: info.trend }));
+    } else {
+      card.append(h('p', { class: 'small muted', text: 'Log your waist (relaxed, level with your belly button) to see how close you are. A waist-to-height ratio under about 0.45 is where abs usually start to show.' }));
+    }
+    card.append(h('p', { class: 'muted small', text: 'Rough guide only: genetics decide where fat sits. Crunching more than this will not make them show faster, and you do not need to cut calories while you are still growing.' }));
+    return card;
+  }
+
   function planView() {
     const wrap = h('div', null, h('h1', { text: 'Plan' }));
     const p = state.profile;
@@ -977,8 +1018,7 @@
         h('p', { class: 'muted small', text: 'You are still growing, so some of your gain will be height and filling out. Sleeping 8-10 hours matters as much as the food. If you ever feel worried about your weight or your eating, talk to your GP or school nurse.' })));
     }
 
-    wrap.append(h('div', { class: 'card' }, h('b', { text: 'Visible abs' }),
-      h('p', { class: 'small muted', text: 'Abs show once body fat is low, so the plan for now is to build size first and keep your waist from growing much faster than your weight. A proper cutting plan comes later, once you have built some muscle.' })));
+    wrap.append(absCard(p));
 
     wrap.append(h('button', { type: 'button', class: 'block', onclick: () => { editingProfile = true; render(true); } }, 'Edit profile'));
     if (p.adjust) {

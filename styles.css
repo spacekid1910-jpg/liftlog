@@ -128,7 +128,7 @@ details.card[open] summary { margin-bottom: 10px; }
 .hx b { display: block; }
 .hx span { color: var(--muted); font-size: .9rem; }
 .pill { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: .75rem; font-weight: 700; background: var(--card-2); border: 1px solid var(--border); margin-right: 6px; text-transform: uppercase; letter-spacing: .04em; }
-.pill.pull { color: #7dd3fc; } .pill.push { color: #fda4af; } .pill.legs { color: #fcd34d; }
+.pill.pull { color: #7dd3fc; } .pill.push { color: #fda4af; } .pill.legs { color: #fcd34d; } .pill.absa, .pill.absb { color: #c4b5fd; }
 
 /* bottom nav */
 #nav {
