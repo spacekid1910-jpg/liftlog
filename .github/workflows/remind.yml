@@ -86,6 +86,14 @@ jobs:
             echo "::error::The NTFY_TOPIC secret is not set (Settings > Secrets and variables > Actions)."
             exit 1
           fi
+          # Tidy the secret: drop stray spaces/line breaks and a pasted "https://ntfy.sh/" prefix.
+          NTFY_TOPIC=$(printf '%s' "$NTFY_TOPIC" | tr -d '[:space:]')
+          NTFY_TOPIC="${NTFY_TOPIC##*/}"
+          if ! [[ "$NTFY_TOPIC" =~ ^[A-Za-z0-9_-]+$ ]]; then
+            echo "::error::The NTFY_TOPIC secret has characters a topic can't contain (only letters, numbers, - and _). Re-save it with just the topic name from the ntfy app."
+            exit 1
+          fi
+          echo "Topic looks valid (${#NTFY_TOPIC} characters)."
           OWNER=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
           REPO="${GITHUB_REPOSITORY#*/}"
           APP_URL="https://${OWNER}.github.io/${REPO}/"
