@@ -72,7 +72,7 @@
     const sets = savedSets
       ? savedSets.map((s) => ({ w: s.w ? fmtKg(s.w) : '', r: String(s.r), f: !!s.f }))
       : Array.from({ length: def.sets }, () => ({ w: '', r: '', f: false }));
-    return { id: def.id, name: def.name, lo: def.lo, hi: def.hi, step: def.step, bw: !!def.bw, target: def.sets, sets };
+    return { id: def.id, name: def.name, lo: def.lo, hi: def.hi, step: def.step, bw: !!def.bw, harder: def.harder || '', target: def.sets, sets };
   }
 
   // ---------- history lookups ----------
@@ -127,6 +127,11 @@
         why: `Starting about 10% lighter after a break lets you rebuild without risking an injury. You'll be back to ${wLabel(topW)} in a session or two.` };
     }
     const hitTop = last.sets.length >= 2 && last.sets.every((s) => s.r >= (s.f ? ex.hi - 2 : ex.hi));
+    if (hitTop && ex.harder && topW === 0) {
+      return { kind: 'up', arrow: '↑', label: 'harder', sets: flat(topW, ex.lo),
+        headline: 'Make it harder',
+        why: `You reached ${ex.hi} reps on every set. ${ex.harder} Then aim for ${ex.lo}+ reps per set.` };
+    }
     if (hitTop) {
       const w = topW + ex.step;
       return { kind: 'up', arrow: '↑', label: wLabel(w), sets: flat(w, ex.lo),
@@ -152,7 +157,7 @@
     });
     return { kind: 'hold', arrow: '→', label: wLabel(topW), sets,
       headline: `Stay at ${wLabel(topW)} - add a rep`,
-      why: `Try to beat last time by a rep on each set. Once every set reaches ${ex.hi}, go up${ex.bw ? ' in weight' : ` ${ex.step} kg`}.` };
+      why: `Try to beat last time by a rep on each set. Once every set reaches ${ex.hi}, ${ex.harder && topW === 0 ? "I'll show you how to make it harder" : `go up${ex.bw ? ' in weight' : ` ${ex.step} kg`}`}.` };
   }
 
   // Today's target for set i; falls back to the previous set's weight when there is no history.
@@ -970,7 +975,7 @@
     const info = waistInfo(p);
     const card = h('div', { class: 'card' }, h('b', { text: 'Visible abs' }),
       h('p', { class: 'small', text: 'Abs show when two things line up: low enough body fat, and abs big enough to see. Ab exercises build the second one. They cannot burn fat off your stomach, so the plan has three parts:' }),
-      h('p', { class: 'small', text: '1. Train abs on Monday (Abs A), Wednesday (Abs B) and Saturday (Abs A). About 15 minutes, and the app gives you a weight or rep target each time. Add weight when you hit the top of the range, like any other lift.' }),
+      h('p', { class: 'small', text: '1. Train abs at home on Monday (Abs A), Wednesday (Abs B) and Saturday (Abs A). About 15 minutes, with just your bodyweight and a dumbbell. The app gives you a rep or weight target each time. When you hit the top of the range on every set, add weight or make the move harder, as it tells you.' }),
       h('p', { class: 'small', text: '2. Keep gaining slowly (0.25 to 0.35 kg a week). A bigger, thicker ab wall shows more at the same body fat, and a slow gain keeps fat from piling up on top of it.' }),
       h('p', { class: 'small', text: '3. Watch your waist. Log it every week or two on Progress > Measures.' }));
     if (info) {

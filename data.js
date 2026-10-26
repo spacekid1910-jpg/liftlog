@@ -28,15 +28,22 @@ window.FIT = {
     { id: 'squat', name: 'Squat', m: 'Quads', sets: 3, lo: 6, hi: 10, step: 2.5 },
     { id: 'leg-extension', name: 'Leg Extension', m: 'Quads', sets: 3, lo: 10, hi: 15, step: 2.5 },
     // Abs
-    { id: 'cable-crunch', name: 'Cable Crunch (kneeling)', m: 'Abs', sets: 3, lo: 10, hi: 15, step: 2.5 },
-    { id: 'hanging-leg-raise', name: 'Hanging Leg Raise', m: 'Abs', sets: 3, lo: 8, hi: 15, step: 2.5, bw: true },
-    { id: 'pallof-press', name: 'Pallof Press (per side)', m: 'Abs', sets: 2, lo: 10, hi: 15, step: 2.5 },
-    { id: 'ab-wheel', name: 'Ab Wheel Rollout', m: 'Abs', sets: 3, lo: 6, hi: 12, step: 2.5, bw: true },
-    { id: 'decline-sit-up', name: 'Weighted Decline Sit-up', m: 'Abs', sets: 3, lo: 10, hi: 15, step: 2.5 },
-    { id: 'cable-woodchop', name: 'Cable Woodchop (per side)', m: 'Abs', sets: 2, lo: 10, hi: 15, step: 2.5 },
-    { id: 'reverse-crunch', name: 'Reverse Crunch', m: 'Abs', sets: 3, lo: 12, hi: 20, step: 2.5, bw: true },
-    { id: 'machine-crunch', name: 'Ab Machine Crunch', m: 'Abs', sets: 3, lo: 10, hi: 15, step: 2.5 },
-    { id: 'dead-bug', name: 'Dead Bug', m: 'Abs', sets: 2, lo: 10, hi: 20, step: 2.5, bw: true },
+    // Home abs: bodyweight and a dumbbell only. `harder` is the progression for moves you can't just add weight to.
+    { id: 'db-crunch', name: 'Weighted Crunch (dumbbell on chest)', m: 'Abs', sets: 3, lo: 10, hi: 15, step: 2 },
+    { id: 'lying-leg-raise', name: 'Lying Leg Raise', m: 'Abs', sets: 3, lo: 10, hi: 15, step: 2, bw: true,
+      harder: 'Take 3 seconds to lower your legs, or hold a dumbbell between your feet.' },
+    { id: 'dead-bug', name: 'Dead Bug (per side)', m: 'Abs', sets: 2, lo: 10, hi: 20, step: 2, bw: true,
+      harder: 'Move slowly (3 seconds each way) and hold a light dumbbell in both hands.' },
+    { id: 'reverse-crunch', name: 'Reverse Crunch', m: 'Abs', sets: 3, lo: 12, hi: 20, step: 2, bw: true,
+      harder: 'Pause for 2 seconds at the top, or hold a dumbbell between your feet.' },
+    { id: 'russian-twist', name: 'Dumbbell Russian Twist (total twists)', m: 'Abs', sets: 3, lo: 16, hi: 30, step: 2 },
+    { id: 'db-side-bend', name: 'Dumbbell Side Bend (per side)', m: 'Abs', sets: 2, lo: 10, hi: 15, step: 2 },
+    { id: 'bicycle-crunch', name: 'Bicycle Crunch (total reps)', m: 'Abs', sets: 3, lo: 16, hi: 30, step: 2, bw: true,
+      harder: 'Slow it down and hold a 1-second squeeze each rep.' },
+    { id: 'mountain-climber', name: 'Mountain Climber (total reps)', m: 'Abs', sets: 3, lo: 20, hi: 40, step: 2, bw: true,
+      harder: 'Slow it down with a pause at each knee, or add a push-up after each set of 10.' },
+    { id: 'v-up', name: 'V-up', m: 'Abs', sets: 3, lo: 8, hi: 15, step: 2, bw: true,
+      harder: 'Hold a dumbbell in both hands, or pause for 2 seconds at the top.' },
   ],
   TEMPLATES: {
     pull: {
@@ -54,16 +61,16 @@ window.FIT = {
       core: ['leg-press', 'rdl', 'leg-curl', 'calf-raise'],
       extra: ['squat', 'leg-extension'],
     },
-    // Two short ab sessions that alternate: A = loaded crunching + leg raises, B = anti-extension + obliques.
+    // Two short home ab sessions that alternate: A = crunching + leg raises, B = lower abs + obliques.
     absa: {
       label: 'Abs A',
-      core: ['cable-crunch', 'hanging-leg-raise', 'pallof-press'],
-      extra: ['machine-crunch', 'reverse-crunch', 'dead-bug'],
+      core: ['db-crunch', 'lying-leg-raise', 'dead-bug'],
+      extra: ['v-up', 'bicycle-crunch', 'mountain-climber'],
     },
     absb: {
       label: 'Abs B',
-      core: ['ab-wheel', 'decline-sit-up', 'cable-woodchop'],
-      extra: ['reverse-crunch', 'dead-bug', 'hanging-leg-raise'],
+      core: ['reverse-crunch', 'russian-twist', 'db-side-bend'],
+      extra: ['bicycle-crunch', 'mountain-climber', 'v-up'],
     },
   },
   // Minimum sets per week per muscle before the balance check flags it (about 10 is a common target).
