@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const { CATALOG, TEMPLATES, SCHEDULE, MIN_SETS } = window.FIT;
+  const { CATALOG, TEMPLATES, SCHEDULE, MIN_SETS, ABS_DAYS, ABS_ANCHOR } = window.FIT;
   const KEY = 'liftlog.v1';
   const TYPE_LABEL = { pull: 'Pull', push: 'Push', legs: 'Legs', absa: 'Abs A', absb: 'Abs B' };
 
@@ -204,12 +204,24 @@
     return issues;
   }
 
+  // Pull/Push have fixed days. Ab days alternate A, B, A, B... across every ab session (Mon, Wed, Sat).
+  function scheduledFor(date) {
+    const dow = date.getDay();
+    if (SCHEDULE[dow]) return SCHEDULE[dow];
+    const pos = ABS_DAYS.indexOf(dow);
+    if (pos < 0) return null;
+    const midnight = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const days = Math.round((midnight - parseDay(ABS_ANCHOR)) / 864e5);
+    const idx = Math.floor(days / 7) * ABS_DAYS.length + pos;
+    return ((idx % 2) + 2) % 2 === 0 ? 'absa' : 'absb';
+  }
+
   function nextSession() {
-    const dow = new Date().getDay();
-    if (SCHEDULE[dow]) return { type: SCHEDULE[dow], today: true, days: 0 };
-    for (let i = 1; i <= 7; i++) {
-      const t = SCHEDULE[(dow + i) % 7];
-      if (t) return { type: t, today: false, days: i };
+    const now = new Date();
+    for (let i = 0; i <= 7; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+      const t = scheduledFor(d);
+      if (t) return { type: t, today: i === 0, days: i };
     }
     return null;
   }
@@ -293,8 +305,8 @@
   // ---------- views ----------
   function homeView() {
     const wrap = h('div');
-    const dow = new Date().getDay();
-    const todayType = SCHEDULE[dow];
+    const nx = nextSession();
+    const todayType = nx && nx.today ? nx.type : null;
     const doneToday = state.sessions.some((s) => s.date === todayStr() && (!todayType || s.type === todayType));
 
     let title; let sub;
@@ -302,10 +314,8 @@
       title = `${TYPE_LABEL[todayType]} day today`;
       sub = doneToday ? 'Logged - nice work.' : 'Time to train.';
     } else {
-      let next = 1; let nextType;
-      for (; next <= 7; next++) { nextType = SCHEDULE[(dow + next) % 7]; if (nextType) break; }
       title = 'Rest day';
-      sub = `Next up: ${TYPE_LABEL[nextType]} ${next === 1 ? 'tomorrow' : `in ${next} days`}. Extra session? Start one below.`;
+      sub = nx ? `Next up: ${TYPE_LABEL[nx.type]} ${nx.days === 1 ? 'tomorrow' : `in ${nx.days} days`}. Extra session? Start one below.` : 'Extra session? Start one below.';
     }
     const targets = state.profile ? planNumbers(state.profile, currentWeight()) : null;
     wrap.append(h('div', { class: 'card banner' }, h('h1', { text: title }), h('p', { class: 'muted', text: sub }),
@@ -975,7 +985,7 @@
     const info = waistInfo(p);
     const card = h('div', { class: 'card' }, h('b', { text: 'Visible abs' }),
       h('p', { class: 'small', text: 'Abs show when two things line up: low enough body fat, and abs big enough to see. Ab exercises build the second one. They cannot burn fat off your stomach, so the plan has three parts:' }),
-      h('p', { class: 'small', text: '1. Train abs at home on Monday (Abs A), Wednesday (Abs B) and Saturday (Abs A). About 15 minutes, with just your bodyweight and a dumbbell. The app gives you a rep or weight target each time. When you hit the top of the range on every set, add weight or make the move harder, as it tells you.' }),
+      h('p', { class: 'small', text: '1. Train abs at home on Monday, Wednesday and Saturday, alternating Abs A and Abs B each time (A, B, A one week, then B, A, B the next). About 15 minutes, with just your bodyweight and a dumbbell. The app gives you a rep or weight target each time. When you hit the top of the range on every set, add weight or make the move harder, as it tells you.' }),
       h('p', { class: 'small', text: '2. Keep gaining slowly (0.25 to 0.35 kg a week). A bigger, thicker ab wall shows more at the same body fat, and a slow gain keeps fat from piling up on top of it.' }),
       h('p', { class: 'small', text: '3. Watch your waist. Log it every week or two on Progress > Measures.' }));
     if (info) {

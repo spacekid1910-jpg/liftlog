@@ -76,5 +76,8 @@ window.FIT = {
   // Minimum sets per week per muscle before the balance check flags it (about 10 is a common target).
   MIN_SETS: { Chest: 6, Back: 6, Shoulders: 6, 'Rear delts': 3, Biceps: 5, Triceps: 5, Quads: 6, Hamstrings: 4, Calves: 3, Abs: 6 },
   // getDay(): 0 = Sunday ... 6 = Saturday
-  SCHEDULE: { 1: 'absa', 2: 'pull', 3: 'absb', 5: 'push', 6: 'absa' },
+  SCHEDULE: { 2: 'pull', 5: 'push' },
+  // Ab days alternate Abs A / Abs B across every ab session. The anchor is a Monday that starts on Abs A.
+  ABS_DAYS: [1, 3, 6],
+  ABS_ANCHOR: '2026-10-26',
 };

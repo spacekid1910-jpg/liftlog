@@ -31,7 +31,9 @@ jobs:
       # Training days as ISO weekday number = name (1 = Monday ... 7 = Sunday). Edit to add or move days.
       # Use an underscore instead of a space in a name (Abs_A shows as "Abs A").
       # Add @HH:MM to set a different time for that day (Abs days are in the evening).
-      TRAIN_PLAN: '1=Abs_A@19:00 2=Pull 3=Abs_B@19:00 5=Push 6=Abs_A@19:00'
+      # "Abs" days alternate Abs A / Abs B across every ab session (must match ABS_DAYS and ABS_ANCHOR in data.js).
+      TRAIN_PLAN: '1=Abs@19:00 2=Pull 3=Abs@19:00 5=Push 6=Abs@19:00'
+      ABS_ANCHOR: '2026-10-26'
       # UK time the reminder arrives when a day has no @time.
       SEND_TIME: '15:30'
     steps:
@@ -52,6 +54,11 @@ jobs:
                 case "$DAYNAME" in *@*) AT="${DAYNAME#*@}"; DAYNAME="${DAYNAME%@*}";; esac
               fi
             done
+            if [ "$DAYNAME" = "Abs" ]; then
+              WEEKS=$(( ( $(date -u -d "${DATE}" +%s) - $(date -u -d "${ABS_ANCHOR}" +%s) ) / 86400 / 7 ))
+              case "$DOW" in 1) POS=0;; 3) POS=1;; 6) POS=2;; *) POS=0;; esac
+              if [ $(( (WEEKS * 3 + POS) % 2 )) -eq 0 ]; then DAYNAME="Abs_A"; else DAYNAME="Abs_B"; fi
+            fi
             TS=$(TZ=Europe/London date -d "${DATE} ${AT}" +%s)
             if [ -n "$DAYNAME" ] && [ "$TS" -gt $((NOW + 120)) ]; then
               FOUND=true
